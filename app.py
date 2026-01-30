@@ -6,6 +6,9 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 
+# Ensure you are using 'pypdf' NOT 'PyPDF2'
+
+
 # 1. Setup Gemini
 genai_key = st.secrets["GOOGLE_API_KEY"]
 
