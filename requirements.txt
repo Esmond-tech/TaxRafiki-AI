@@ -4,5 +4,5 @@ langchain
 langchain-community
 langchain-google-genai
 langchain-text-splitters
-Pypdf 
+pypdf
 faiss-cpu
