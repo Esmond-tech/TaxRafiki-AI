@@ -3,17 +3,30 @@ from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_classic.chains.question_answering import load_qa_chain
+from langchain.chains.question_answering import load_qa_chain
 from langchain_core.prompts import PromptTemplate
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
-# 1. Google Drive Connection Logic
+# 1. FIXED Google Drive Connection Logic
 def get_drive_service():
-    info = st.secrets["gcp_service_account"]
-    creds = service_account.Credentials.from_service_account_info(info)
+    # We pull the secrets into a dictionary and manually clean the private key
+    # to fix the persistent "ASN.1 unexpected tag" mobile error.
+    creds_dict = {
+        "type": st.secrets["gcp_service_account"]["type"],
+        "project_id": st.secrets["gcp_service_account"]["project_id"],
+        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
+        "client_email": st.secrets["gcp_service_account"]["client_email"],
+        "client_id": st.secrets["gcp_service_account"]["client_id"],
+        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"],
+    }
+    creds = service_account.Credentials.from_service_account_info(creds_dict)
     return build('drive', 'v3', credentials=creds)
 
 def download_pdfs_from_drive(folder_id):
@@ -31,14 +44,13 @@ def download_pdfs_from_drive(folder_id):
         while not done:
             _, done = downloader.next_chunk()
         
-        # Extract text immediately from the downloaded stream
         file_io.seek(0)
         reader = PdfReader(file_io)
         for page in reader.pages:
             pdf_texts += page.extract_text()
     return pdf_texts
 
-# 2. Existing RAG Logic (Updated for 2026)
+# 2. RAG Logic
 def get_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
     chunks = text_splitter.split_text(text)
@@ -49,8 +61,8 @@ def get_vectorstore(text):
 st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: Auto-Sync KRA Guide")
 
-# Replace this with YOUR actual Folder ID from Google Drive
-FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
+# REPLACE THIS ID with your actual Google Drive Folder ID
+FOLDER_ID = "1wZ2x3y4v5u6t7s8r9q0p_ExampleID" 
 
 with st.sidebar:
     st.info("Files are synced automatically from Google Drive.")
