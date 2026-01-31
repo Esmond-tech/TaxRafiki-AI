@@ -71,7 +71,7 @@ if user_question:
         st.error("Please Sync first!")
     else:
         docs = st.session_state.vector_store.similarity_search(user_question)
-        llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["AIzaSyDAGBiZ7zOSDqHT8xiufexKxOM9gp4YWx4"])
+        llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["GOOGLE_API_KEY"])
         prompt = PromptTemplate(template="Context:\n{context}\nQuestion:\n{question}\nAnswer:", input_variables=["context", "question"])
         chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
         response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
