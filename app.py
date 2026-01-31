@@ -3,8 +3,9 @@ from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain.chains.question_answering import load_qa_chain
-from langchain_core.prompts import PromptTemplate
+# UPDATED FOR 2026: Use the modern combine_documents path
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -12,21 +13,11 @@ import io
 
 # 1. FIXED Google Drive Connection Logic
 def get_drive_service():
-    # We pull the secrets into a dictionary and manually clean the private key
-    # to fix the persistent "ASN.1 unexpected tag" mobile error.
-    creds_dict = {
-        "type": st.secrets["gcp_service_account"]["type"],
-        "project_id": st.secrets["gcp_service_account"]["project_id"],
-        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["gcp_service_account"]["client_email"],
-        "client_id": st.secrets["gcp_service_account"]["client_id"],
-        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"],
-    }
-    creds = service_account.Credentials.from_service_account_info(creds_dict)
+    # We pull secrets into a dictionary and fix the mobile newline bug
+    creds_info = dict(st.secrets["gcp_service_account"])
+    creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+    
+    creds = service_account.Credentials.from_service_account_info(creds_info)
     return build('drive', 'v3', credentials=creds)
 
 def download_pdfs_from_drive(folder_id):
@@ -85,11 +76,13 @@ if user_question:
     if "vector_store" not in st.session_state:
         st.error("Please click 'Sync Latest Laws' in the sidebar first!")
     else:
+        # Modern 2026 Chain Pattern
         docs = st.session_state.vector_store.similarity_search(user_question)
-        model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
-        prompt = PromptTemplate(template="Context:\n{context}?\nQuestion:\n{question}\nAnswer:", input_variables=["context", "question"])
-        chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
-        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.3)
+        prompt = ChatPromptTemplate.from_template("Answer based only on context: {context}\nQuestion: {input}")
+        
+        chain = create_stuff_documents_chain(llm, prompt)
+        response = chain.invoke({"context": docs, "input": user_question})
         
         with st.chat_message("user"): st.write(user_question)
-        with st.chat_message("assistant"): st.write(response["output_text"])
+        with st.chat_message("assistant"): st.write(response)
