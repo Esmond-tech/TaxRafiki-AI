@@ -50,7 +50,7 @@ st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: Auto-Sync KRA Guide")
 
 # Replace this with YOUR actual Folder ID from Google Drive
-FOLDER_ID = "PASTE_YOUR_FOLDER_ID_HERE"
+FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
 
 with st.sidebar:
     st.info("Files are synced automatically from Google Drive.")
