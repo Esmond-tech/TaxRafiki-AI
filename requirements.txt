@@ -1,14 +1,8 @@
 streamlit
-google-generativeai
+pypdf
 langchain
-langchain-core
 langchain-community
 langchain-google-genai
-langchain-text-splitters
-langchain-classic
-pypdf
-faiss-cpu
 google-api-python-client
 google-auth
-
-
+faiss-cpu
