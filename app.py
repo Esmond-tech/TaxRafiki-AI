@@ -10,22 +10,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
-# 1. FIXED Google Drive Connection Logic
+# FIXED: Standard dictionary conversion to handle mobile line breaks
 def get_drive_service():
-    # Pulling directly into a dict to avoid "Missing Fields" errors
-    creds_info = {
-        "type": st.secrets["gcp_service_account"]["type"],
-        "project_id": st.secrets["gcp_service_account"]["project_id"],
-        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["gcp_service_account"]["client_email"],
-        "client_id": st.secrets["gcp_service_account"]["client_id"],
-        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
-    }
-    creds = service_account.Credentials.from_service_account_info(creds_info)
+    service_info = dict(st.secrets["gcp_service_account"])
+    # Clean any accidental escaped newlines from the private key
+    service_info["private_key"] = service_info["private_key"].replace("\\n", "\n")
+    
+    creds = service_account.Credentials.from_service_account_info(service_info)
     return build('drive', 'v3', credentials=creds)
 
 def download_pdfs_from_drive(folder_id):
@@ -49,10 +40,10 @@ def download_pdfs_from_drive(folder_id):
             pdf_texts += page.extract_text()
     return pdf_texts
 
-# 2. RAG Logic
 def get_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
     chunks = text_splitter.split_text(text)
+    # Uses the API key from your secrets
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets["GOOGLE_API_KEY"])
     return FAISS.from_texts(chunks, embedding=embeddings)
 
@@ -60,20 +51,20 @@ def get_vectorstore(text):
 st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: Auto-Sync KRA Guide")
 
-# Use your specific Folder ID here
-FOLDER_ID = "18T7-q2_qM-S1I6X0UeYjV6_k_qXW_W_E" # Replace with your real ID if different
+# Your specific Folder ID from our chat history
+FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
 
 with st.sidebar:
     st.info("Files are synced automatically from Google Drive.")
     if st.button("🔄 Sync Latest Laws"):
-        with st.spinner("Fetching KRA documents from Drive..."):
+        with st.spinner("Fetching documents..."):
             try:
                 raw_text = download_pdfs_from_drive(FOLDER_ID)
                 if raw_text:
                     st.session_state.vector_store = get_vectorstore(raw_text)
-                    st.success("Successfully synced documents!")
+                    st.success("Successfully synced!")
                 else:
-                    st.warning("No PDFs found in the folder.")
+                    st.warning("No PDFs found.")
             except Exception as e:
                 st.error(f"Sync Error: {e}")
 
@@ -82,7 +73,7 @@ user_question = st.chat_input("Ask a tax question...")
 
 if user_question:
     if "vector_store" not in st.session_state:
-        st.error("Please click 'Sync Latest Laws' in the sidebar first!")
+        st.error("Please click 'Sync Latest Laws' first!")
     else:
         docs = st.session_state.vector_store.similarity_search(user_question)
         llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["GOOGLE_API_KEY"])
