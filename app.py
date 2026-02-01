@@ -12,7 +12,7 @@ import io
 
 # 1. FIXED Google Drive Connection
 def get_drive_service():
-    # This pulls your secrets and cleans the mobile newline bug
+    # Pulls secrets and cleans the mobile newline bug
     info = dict(st.secrets["gcp_service_account"])
     info["private_key"] = info["private_key"].replace("\\n", "\n")
     creds = service_account.Credentials.from_service_account_info(info)
@@ -43,6 +43,7 @@ def download_pdfs_from_drive(folder_id):
 def get_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
     chunks = text_splitter.split_text(text)
+    # Corrected secret reference
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets["GOOGLE_API_KEY"])
     return FAISS.from_texts(chunks, embedding=embeddings)
 
@@ -50,6 +51,7 @@ def get_vectorstore(text):
 st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: Auto-Sync KRA Guide")
 
+# Your specific Folder ID from our logs
 FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
 
 with st.sidebar:
@@ -71,8 +73,10 @@ if user_question:
         st.error("Please Sync first!")
     else:
         docs = st.session_state.vector_store.similarity_search(user_question)
+        # Corrected secret reference for security
         llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["GOOGLE_API_KEY"])
-        prompt = PromptTemplate(template="Context:\n{context}\nQuestion:\n{question}\nAnswer:", input_variables=["context", "question"])
+        template = "Context:\n{context}\nQuestion:\n{question}\nAnswer:"
+        prompt = PromptTemplate(template=template, input_variables=["context", "question"])
         chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
         response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
         st.chat_message("assistant").write(response["output_text"])
