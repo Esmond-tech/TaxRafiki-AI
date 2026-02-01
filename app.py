@@ -10,9 +10,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
-# 1. FIXED Google Drive Connection
+# 1. Google Drive Connection
 def get_drive_service():
-    # Pulls secrets and cleans the mobile newline bug
+    # Pulls secrets and fixes the mobile newline bug
     info = dict(st.secrets["gcp_service_account"])
     info["private_key"] = info["private_key"].replace("\\n", "\n")
     creds = service_account.Credentials.from_service_account_info(info)
@@ -43,16 +43,19 @@ def download_pdfs_from_drive(folder_id):
 def get_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
     chunks = text_splitter.split_text(text)
-    # Corrected secret reference
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets["GOOGLE_API_KEY"])
+    # Corrected secret reference for embeddings
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001", 
+        google_api_key=st.secrets["GOOGLE_API_KEY"]
+    )
     return FAISS.from_texts(chunks, embedding=embeddings)
 
 # --- UI LOGIC ---
 st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: Auto-Sync KRA Guide")
 
-# Your specific Folder ID from our logs
-FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
+# Verify this ID matches your Drive URL exactly!
+FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zE11bRzQp"
 
 with st.sidebar:
     if st.button("🔄 Sync Latest Laws"):
@@ -73,8 +76,11 @@ if user_question:
         st.error("Please Sync first!")
     else:
         docs = st.session_state.vector_store.similarity_search(user_question)
-        # Corrected secret reference for security
-        llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["GOOGLE_API_KEY"])
+        # Safe secret reference
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-pro", 
+            google_api_key=st.secrets["GOOGLE_API_KEY"]
+        )
         template = "Context:\n{context}\nQuestion:\n{question}\nAnswer:"
         prompt = PromptTemplate(template=template, input_variables=["context", "question"])
         chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
