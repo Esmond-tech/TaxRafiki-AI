@@ -1,6 +1,6 @@
 import streamlit as st
 from pypdf import PdfReader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
@@ -10,9 +10,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
-# 1. FIXED Google Drive Connection
+# 1. Drive Connection
 def get_drive_service():
-    # Pulls secrets and cleans mobile line-break bugs
     info = dict(st.secrets["gcp_service_account"])
     info["private_key"] = info["private_key"].replace("\\n", "\n")
     creds = service_account.Credentials.from_service_account_info(info)
@@ -33,7 +32,7 @@ def download_pdfs(folder_id):
         file_io.seek(0)
         reader = PdfReader(file_io)
         for page in reader.pages:
-            pdf_texts += page.extract_text()
+            pdf_texts += page.extract_text() or ""
     return pdf_texts
 
 # --- UI LOGIC ---
@@ -49,10 +48,12 @@ with st.sidebar:
                 raw_text = download_pdfs(FOLDER_ID)
                 if raw_text:
                     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets["GOOGLE_API_KEY"])
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                     chunks = text_splitter.split_text(raw_text)
                     st.session_state.vector_store = FAISS.from_texts(chunks, embedding=embeddings)
                     st.success("Synced!")
+                else:
+                    st.warning("No PDFs found.")
             except Exception as e:
                 st.error(f"Sync Error: {e}")
 
@@ -63,8 +64,7 @@ if user_question:
     else:
         docs = st.session_state.vector_store.similarity_search(user_question)
         llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=st.secrets["GOOGLE_API_KEY"])
-        template = "Context:\n{context}\nQuestion:\n{question}\nAnswer:"
-        prompt = PromptTemplate(template=template, input_variables=["context", "question"])
+        prompt = PromptTemplate(template="Context:\n{context}\nQuestion:\n{question}\nAnswer:", input_variables=["context", "question"])
         chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt)
         response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
         st.chat_message("assistant").write(response["output_text"])
