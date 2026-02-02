@@ -1,15 +1,16 @@
 import streamlit as st
 from pypdf import PdfReader
-# THIS IS THE FIX: We use the modern import now that the requirement is added
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_classic.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
+from langchain.chains.question_answering import load_qa_chain
+# THIS IS THE FIX FOR LINE 8:
+from langchain_core.prompts import PromptTemplate
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
+
 
 # 1. Drive Connection
 def get_drive_service():
