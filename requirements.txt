@@ -2,8 +2,9 @@ streamlit
 pypdf
 langchain
 langchain-community
-langchain-classic    
+langchain-text-splitters
 langchain-google-genai
+langchain-core        
 google-api-python-client
 google-auth
 faiss-cpu
