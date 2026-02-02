@@ -14,9 +14,11 @@ import io
 # 1. Google Drive Connection
 def get_drive_service():
     info = dict(st.secrets["gcp_service_account"])
-    info["private_key"] = info["private_key"].replace("\\n", "\n")
+    # We double-replace to handle both raw newlines and string literal \n
+    info["private_key"] = info["private_key"].replace("\\n", "\n").replace("\n\n", "\n")
     creds = service_account.Credentials.from_service_account_info(info)
     return build('drive', 'v3', credentials=creds)
+
 
 def download_pdfs(folder_id):
     service = get_drive_service()
