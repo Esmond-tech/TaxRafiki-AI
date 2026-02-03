@@ -22,8 +22,7 @@ def get_drive_service():
 
 def download_pdfs(folder_id):
     service = get_drive_service()
-    query = f"{folder_id} in parents and mimeType='application/pdf'"
-
+    query = f"'{folder_id}' in parents and mimeType='application/pdf'"
     results = service.files().list(q=query).execute()
     pdf_texts = ""
     for item in results.get('files', []):
