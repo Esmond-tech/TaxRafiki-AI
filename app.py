@@ -42,7 +42,7 @@ def download_pdfs(folder_id):
 st.set_page_config(page_title="TaxRafiki AI", page_icon="🇰🇪")
 st.title("🇰🇪 TaxRafiki: KRA Guide Sync")
 
-FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zE11bRzQp"
+FOLDER_ID = "11gCstGrg63yaIH2DTfsEfq6zEl1bRzQp"
 
 with st.sidebar:
     if st.button("🔄 Sync KRA Laws"):
