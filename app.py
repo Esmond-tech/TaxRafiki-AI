@@ -51,7 +51,7 @@ with st.sidebar:
                 raw_text = download_pdfs(FOLDER_ID)
                 if raw_text:
                     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets["GOOGLE_API_KEY"])
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
                     chunks = text_splitter.split_text(raw_text)
                     st.session_state.vector_store = FAISS.from_texts(chunks, embedding=embeddings)
                     st.success("Laws Synced!")
